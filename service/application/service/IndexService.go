@@ -22,7 +22,7 @@ func NewIndexService(documentMetricsRepository repositories.DocumentMetricsRepos
 		IndexMemoryRepository:     indexMemoryRepository,
 		DocumentMetricsRepository: documentMetricsRepository,
 	}
-	c.CreateNormalizedDocument(ch)
+	go c.CreateNormalizedDocument(ch)
 	return c
 }
 
@@ -43,6 +43,12 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 		return err
 	}
 
+	i.Ch <- domain.NormalizedDocument{
+		Id:     id,
+		Length: len(normalizedTokens),
+		Tf:     nlp.TermFrequency(normalizedTokens),
+	}
+
 	for _, term := range normalizedTokens {
 
 		var documentList, err = i.IndexMemoryRepository.FindByTerm(term)
@@ -55,19 +61,9 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 			if nlp.NotContains(id, documentList) {
 				documentList = append(documentList, id)
 				i.IndexMemoryRepository.Update(term, documentList)
-				i.Ch <- domain.NormalizedDocument{
-					Id:     id,
-					Length: len(normalizedTokens),
-					Tf:     nlp.TermFrequency(normalizedTokens),
-				}
 			}
 		} else {
 			i.IndexMemoryRepository.Save(term, []string{id})
-			i.Ch <- domain.NormalizedDocument{
-				Id:     id,
-				Length: len(normalizedTokens),
-				Tf:     nlp.TermFrequency(normalizedTokens),
-			}
 		}
 	}
 

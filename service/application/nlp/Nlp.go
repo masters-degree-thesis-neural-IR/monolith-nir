@@ -175,13 +175,23 @@ func ScoreBM25(query []string, invertedIndex *domain.InvertedIndex) []domain.Que
 	return queryResults
 }
 
-func SortDesc(results []domain.QueryResult) []domain.QueryResult {
+func SortDesc(results []domain.QueryResult, top int) []domain.QueryResult {
+
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Similarity > results[j].Similarity
 	})
 
-	//var maxsim = make([]domain.QueryResult, 0)
-	//
+	var maxScore = make([]domain.QueryResult, 0)
+
+	count := 0
+	for _, document := range results {
+		if count == top {
+			break
+		}
+		maxScore = append(maxScore, document)
+		count++
+	}
+
 	//for _, doc := range results {
 	//	if doc.Similarity <= 0.1 {
 	//		continue
@@ -190,5 +200,5 @@ func SortDesc(results []domain.QueryResult) []domain.QueryResult {
 	//	maxsim = append(maxsim, doc)
 	//}
 
-	return results
+	return maxScore
 }

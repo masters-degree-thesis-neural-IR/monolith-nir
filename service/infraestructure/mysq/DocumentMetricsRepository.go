@@ -10,22 +10,39 @@ import (
 )
 
 type DocumentMetricsRepository struct {
-	DB *sql.DB
+	DB    *sql.DB
+	Cache map[string]*domain.NormalizedDocument
 }
 
 func NewDocumentMetricsRepository(db *sql.DB) repositories.DocumentMetricsRepository {
 	return DocumentMetricsRepository{
-		DB: db,
+		DB:    db,
+		Cache: make(map[string]*domain.NormalizedDocument),
 	}
 }
 
 func (d DocumentMetricsRepository) FindDocuments(documentIDs map[string]int8) ([]domain.NormalizedDocument, error) {
 
-	var in string
+	var normalizedDocuments []domain.NormalizedDocument
+
+	nocache := make([]string, 0)
+
+	//verifica quais documentos estão no cache
 	for id, _ := range documentIDs {
+		document := d.Cache[id]
+		if document != nil {
+			normalizedDocuments = append(normalizedDocuments, *document)
+		} else {
+			nocache = append(nocache, id)
+		}
+	}
+
+	var in string
+	for _, id := range nocache {
 		in += fmt.Sprintf("'%s',", id)
 	}
 	in += "''"
+	//println(in)
 
 	query := fmt.Sprintf("SELECT * FROM tb_document_metrics WHERE id IN (%s)", in)
 	result, err := d.DB.Query(query)
@@ -34,18 +51,22 @@ func (d DocumentMetricsRepository) FindDocuments(documentIDs map[string]int8) ([
 		return nil, *exception.ThrowUnexpectedError(err.Error())
 	}
 
-	var normalizedDocuments []domain.NormalizedDocument
-
 	for result.Next() {
 
-		var document domain.NormalizedDocument
+		var id string
+		var metrics string
 
-		err = result.Scan(&document)
+		err = result.Scan(&id, &metrics)
 		if err != nil {
 			return nil, *exception.ThrowUnexpectedError(err.Error())
 		}
 
-		normalizedDocuments = append(normalizedDocuments, document)
+		var normalizedDocument domain.NormalizedDocument
+		json.Unmarshal([]byte(metrics), &normalizedDocument)
+
+		d.Cache[id] = &normalizedDocument
+
+		normalizedDocuments = append(normalizedDocuments, normalizedDocument)
 	}
 
 	defer result.Close()

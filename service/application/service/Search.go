@@ -80,7 +80,7 @@ func (s Search) SearchDocument(query string) ([]domain.QueryResult, error) {
 		return nil, *exception.ThrowValidationError(err.Error())
 	}
 
-	queryResults := nlp.SortDesc(nlp.ScoreBM25(localQuery, &invertedIndex))
+	queryResults := nlp.SortDesc(nlp.ScoreBM25(localQuery, &invertedIndex), 10)
 	//tempQueryResults := make([]domain.QueryResult, len(queryResults))
 	//
 	//for i, queryResult := range queryResults {
