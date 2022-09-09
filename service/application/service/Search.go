@@ -1,22 +1,24 @@
 package service
 
 import (
-	"log"
 	"monolith-nir/service/application/domain"
 	"monolith-nir/service/application/exception"
+	"monolith-nir/service/application/logger"
 	"monolith-nir/service/application/nlp"
 	"monolith-nir/service/application/repositories"
 	"monolith-nir/service/application/usecases"
 )
 
 type Search struct {
+	Logger                    logger.Logger
 	DocumentRepository        repositories.DocumentRepository
 	IndexMemoryRepository     repositories.IndexMemoryRepository
 	DocumentMetricsRepository repositories.DocumentMetricsRepository
 }
 
-func NewSearch(documentMetricsRepository repositories.DocumentMetricsRepository, indexMemoryRepository repositories.IndexMemoryRepository, documentRepository repositories.DocumentRepository) usecases.SearchUc {
+func NewSearch(logger logger.Logger, documentMetricsRepository repositories.DocumentMetricsRepository, indexMemoryRepository repositories.IndexMemoryRepository, documentRepository repositories.DocumentRepository) usecases.SearchUc {
 	return Search{
+		Logger:                    logger,
 		DocumentRepository:        documentRepository,
 		IndexMemoryRepository:     indexMemoryRepository,
 		DocumentMetricsRepository: documentMetricsRepository,
@@ -34,14 +36,17 @@ func (s Search) MakeInvertedIndex(localQuery []string, foundDocuments map[string
 	}
 
 	if err != nil {
-		log.Fatalln("Error....: ", err)
+		s.Logger.Error(err.Error())
 		return domain.InvertedIndex{}, err
 	}
 
 	for _, term := range localQuery {
 		for _, document := range normalizedDocuments {
 			qtd := document.Tf[term]
-			invertedIndex.Df[term] += qtd
+			//TODO: Remover a condição
+			if qtd > 0 {
+				invertedIndex.Df[term] += 1
+			}
 		}
 	}
 
@@ -72,34 +77,16 @@ func (s Search) FindDocuments(localQuery []string) map[string]int8 {
 
 func (s Search) SearchDocument(query string) ([]domain.QueryResult, error) {
 
-	localQuery := nlp.Tokenizer(query, true) //:= nlp.RemoveStopWords(nlp.Tokenizer(query, true), "en")
+	localQuery := nlp.Tokenizer(query, true) //nlp.RemoveStopWords(nlp.Tokenizer(query, true), "en")
 	foundDocuments := s.FindDocuments(localQuery)
 	invertedIndex, err := s.MakeInvertedIndex(localQuery, foundDocuments)
 
 	if err != nil {
-		return nil, *exception.ThrowValidationError(err.Error())
+		s.Logger.Error(err.Error())
+		return nil, exception.ThrowValidationError(err.Error())
 	}
 
 	queryResults := nlp.SortDesc(nlp.ScoreBM25(localQuery, &invertedIndex), 10)
-	//tempQueryResults := make([]domain.QueryResult, len(queryResults))
-	//
-	//for i, queryResult := range queryResults {
-	//
-	//	doc, err := s.DocumentRepository.FindById(queryResult.NormalizedDocument.Id)
-	//
-	//	if doc == nil {
-	//		continue
-	//	}
-	//
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	tempQueryResults[i].Similarity = queryResult.Similarity
-	//	tempQueryResults[i].NormalizedDocument = queryResult.NormalizedDocument
-	//	tempQueryResults[i].Document = *doc
-	//
-	//}
 
 	return queryResults, nil
 }

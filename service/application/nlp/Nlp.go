@@ -90,7 +90,7 @@ func StopWordLang(lang string) (map[string]bool, error) {
 		return stopwords.Portuguese, nil
 	}
 
-	return nil, *exception.ThrowValidationError("Not found language from stop word")
+	return nil, exception.ThrowValidationError("Not found language from stop word")
 }
 
 func RemoveStopWords(tokens []string, lang string) ([]string, error) {
@@ -191,14 +191,6 @@ func SortDesc(results []domain.QueryResult, top int) []domain.QueryResult {
 		maxScore = append(maxScore, document)
 		count++
 	}
-
-	//for _, doc := range results {
-	//	if doc.Similarity <= 0.1 {
-	//		continue
-	//	}
-	//
-	//	maxsim = append(maxsim, doc)
-	//}
 
 	return maxScore
 }

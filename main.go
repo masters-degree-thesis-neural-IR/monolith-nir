@@ -9,6 +9,7 @@ import (
 	"monolith-nir/service/application/service"
 	"monolith-nir/service/infraestructure/controller"
 	"monolith-nir/service/infraestructure/dto"
+	"monolith-nir/service/infraestructure/log"
 	"monolith-nir/service/infraestructure/memory"
 	"monolith-nir/service/infraestructure/mysq"
 	"monolith-nir/service/infraestructure/sns"
@@ -41,15 +42,17 @@ func main() {
 	}
 	fmt.Println("Success!")
 
+	logger := log.NewZapLogger()
+
 	documentEvent := sns.NewDocumentEvent(nil, "")
-	memoryRepository := memory.NewMemoryIndexRepository()
+	memoryRepository := memory.NewMemoryIndexRepository(logger)
 
 	documentRepository := mysq.NewDocumentRepository(db)
 	documentMetricsRepository := mysq.NewDocumentMetricsRepository(db)
 	//indexRepository := mysq.NewIndexRepository(db)
-	indexService := service.NewIndexService(documentMetricsRepository, memoryRepository)
-	documentService := service.NewDocumentService(documentEvent, documentRepository)
-	searchService := service.NewSearch(documentMetricsRepository, memoryRepository, documentRepository)
+	indexService := service.NewIndexService(logger, documentMetricsRepository, memoryRepository)
+	documentService := service.NewDocumentService(logger, documentEvent, documentRepository)
+	searchService := service.NewSearch(logger, documentMetricsRepository, memoryRepository, documentRepository)
 	controller := controller.NewController(documentService, indexService, searchService)
 
 	r := gin.New()
@@ -109,7 +112,6 @@ func makeBody(results []domain.QueryResult, duration time.Duration) (dto.Result,
 		}
 	}
 
-	//body, err := json.Marshal(rst)
 	return rst, nil
 
 }

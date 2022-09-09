@@ -2,28 +2,30 @@ package service
 
 import (
 	"monolith-nir/service/application/exception"
+	"monolith-nir/service/application/logger"
 	"monolith-nir/service/application/ports"
 	"monolith-nir/service/application/repositories"
 	"monolith-nir/service/application/usecases"
 )
 
 type DocumentService struct {
+	Logger             logger.Logger
 	DocumentEvent      ports.DocumentEvent
 	DocumentRepository repositories.DocumentRepository
 }
 
-func NewDocumentService(documentEvent ports.DocumentEvent, documentRepository repositories.DocumentRepository) usecases.DocumentUc {
-	var c usecases.DocumentUc = &DocumentService{
+func NewDocumentService(logger logger.Logger, documentEvent ports.DocumentEvent, documentRepository repositories.DocumentRepository) usecases.DocumentUc {
+	return &DocumentService{
+		Logger:             logger,
 		DocumentEvent:      documentEvent,
 		DocumentRepository: documentRepository,
 	}
-	return c
 }
 
 func (s *DocumentService) Create(id string, title string, body string) error {
 
 	if id == "" {
-		return *exception.ThrowValidationError("Invalid id from document")
+		return exception.ThrowValidationError("Invalid id from document")
 	}
 
 	//if title == "" {

@@ -83,7 +83,7 @@ func handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 
 	repository := dydb.NewDocumentRepository(awsSession, TableName)
 	documentEvent := sns.NewDocumentEvent(awsSession, TopicArn)
-	documentService := service.NewDocumentService(documentEvent, repository)
+	documentService := service.NewDocumentService(nil, documentEvent, repository)
 	err = documentService.Create(document.Id, document.Title, document.Body)
 
 	if err != nil {
