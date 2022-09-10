@@ -8,15 +8,15 @@ import (
 	"math"
 	"monolith-nir/service/application/domain"
 	"monolith-nir/service/application/exception"
-	"monolith-nir/service/application/score"
-	"monolith-nir/service/application/stopwords"
+	"monolith-nir/service/application/nlp/score"
+	stopwords2 "monolith-nir/service/application/nlp/stopwords"
 	"regexp"
 	"sort"
 	"strings"
 	"unicode"
 )
 
-//func NotContains(document domain.NormalizedDocument, documents []domain.NormalizedDocument) bool {
+//func NotContains(document domain.DocumentID, documents []domain.DocumentID) bool {
 //
 //	for _, doc := range documents {
 //		if doc.Id == document.Id {
@@ -83,11 +83,11 @@ func Tokenizer(document string, normalize bool) []string {
 func StopWordLang(lang string) (map[string]bool, error) {
 
 	if lang == "en" {
-		return stopwords.English, nil
+		return stopwords2.English, nil
 	}
 
 	if lang == "pt" {
-		return stopwords.Portuguese, nil
+		return stopwords2.Portuguese, nil
 	}
 
 	return nil, exception.ThrowValidationError("Not found language from stop word")
@@ -155,18 +155,35 @@ func CalcIdf(df map[string]int, corpusSize int) map[string]float64 {
 
 }
 
-func ScoreBM25(query []string, invertedIndex *domain.InvertedIndex) []domain.QueryResult {
+func ScoreCosineSimilarity(query []float64, documentsEmbedding []domain.DocumentEmbedding) []domain.ScoreResult {
 
-	queryResults := make([]domain.QueryResult, invertedIndex.CorpusSize)
+	queryResults := make([]domain.ScoreResult, len(documentsEmbedding))
+
+	for i, document := range documentsEmbedding {
+		score, _ := score.CosineSimilarity(query, document.Embedding)
+
+		queryResults[i] = domain.ScoreResult{
+			Similarity: score,
+			DocumentID: document.Id,
+		}
+		i++
+	}
+
+	return queryResults
+}
+
+func ScoreBM25(query []string, invertedIndex *domain.InvertedIndex) []domain.ScoreResult {
+
+	queryResults := make([]domain.ScoreResult, invertedIndex.CorpusSize)
 
 	var i = 0
 	for _, doc := range invertedIndex.NormalizedDocumentFound {
 
 		score := score.BM25(query, &doc, invertedIndex.Idf, invertedIndex.CorpusSize, 0.75, 1.5)
 
-		queryResults[i] = domain.QueryResult{
-			Similarity:         score,
-			NormalizedDocument: doc,
+		queryResults[i] = domain.ScoreResult{
+			Similarity: score,
+			DocumentID: doc.Id,
 		}
 		i++
 
@@ -175,13 +192,13 @@ func ScoreBM25(query []string, invertedIndex *domain.InvertedIndex) []domain.Que
 	return queryResults
 }
 
-func SortDesc(results []domain.QueryResult, top int) []domain.QueryResult {
+func SortDesc(results []domain.ScoreResult, top int) []domain.ScoreResult {
 
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Similarity > results[j].Similarity
 	})
 
-	var maxScore = make([]domain.QueryResult, 0)
+	var maxScore = make([]domain.ScoreResult, 0)
 
 	count := 0
 	for _, document := range results {

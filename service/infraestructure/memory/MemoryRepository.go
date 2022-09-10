@@ -20,7 +20,7 @@ func NewMemoryIndexRepository(logger logger.Logger) repositories.IndexMemoryRepo
 	start := time.Now()
 	index := files.LoadIndex()
 	elapsed := time.Since(start)
-	logger.Info("LOAD INDEX", "Total..: ", len(index), " Time ..: ", elapsed)
+	logger.Info("LOAD INDEX", "Total..:", len(index), "Time ..: ", elapsed)
 
 	i := IndexRepository{
 		Chan:  ch,
@@ -42,7 +42,6 @@ func (i *IndexRepository) Update(term string, documents []string) error {
 	if len(localDocuments) > 0 {
 		i.Index[term] = documents
 		i.Chan <- map[string][]string{term: documents}
-
 	} else {
 		return exception.ThrowValidationError("Not have term indexed. Use Save function")
 	}

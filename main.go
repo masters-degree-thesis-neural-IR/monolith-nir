@@ -7,6 +7,7 @@ import (
 	"monolith-nir/service/application/domain"
 	"monolith-nir/service/application/exception"
 	"monolith-nir/service/application/service"
+	"monolith-nir/service/infraestructure/ai"
 	"monolith-nir/service/infraestructure/controller"
 	"monolith-nir/service/infraestructure/dto"
 	"monolith-nir/service/infraestructure/log"
@@ -47,13 +48,17 @@ func main() {
 	documentEvent := sns.NewDocumentEvent(nil, "")
 	memoryRepository := memory.NewMemoryIndexRepository(logger)
 
+	embeddingBERT := ai.NewWordEmbeddingBERT()
+	embeddingRepository := mysq.NewDocumentEmbeddingRepository(db)
+	embeddingService := service.NewWordEmbeddingService(logger, embeddingRepository, embeddingBERT)
+
 	documentRepository := mysq.NewDocumentRepository(db)
 	documentMetricsRepository := mysq.NewDocumentMetricsRepository(db)
 	//indexRepository := mysq.NewIndexRepository(db)
 	indexService := service.NewIndexService(logger, documentMetricsRepository, memoryRepository)
 	documentService := service.NewDocumentService(logger, documentEvent, documentRepository)
-	searchService := service.NewSearch(logger, documentMetricsRepository, memoryRepository, documentRepository)
-	controller := controller.NewController(documentService, indexService, searchService)
+	searchService := service.NewSearchService(embeddingBERT, logger, embeddingRepository, documentMetricsRepository, memoryRepository, documentRepository)
+	controller := controller.NewController(embeddingService, documentService, indexService, searchService)
 
 	r := gin.New()
 	r.POST("/nir", func(c *gin.Context) {
@@ -78,7 +83,7 @@ func main() {
 
 		start := time.Now()
 		paramPairs := c.Request.URL.Query()
-		results, err := controller.Search.SearchDocument(paramPairs.Get("query"))
+		results, err := controller.SearchDocuments(paramPairs.Get("query"))
 		duration := time.Since(start)
 
 		if err != nil {
@@ -91,7 +96,7 @@ func main() {
 	r.Run()
 }
 
-func makeBody(results []domain.QueryResult, duration time.Duration) (dto.Result, error) {
+func makeBody(results []domain.ScoreResult, duration time.Duration) (dto.Result, error) {
 
 	total := len(results)
 
@@ -105,7 +110,7 @@ func makeBody(results []domain.QueryResult, duration time.Duration) (dto.Result,
 		rst.QueryResults[i] = dto.QueryResult{
 			Similarity: result.Similarity,
 			Document: dto.Document{
-				Id: result.NormalizedDocument.Id,
+				Id: result.DocumentID,
 				//Title: result.Document.Title,
 				//Body:  result.Document.Body,
 			},

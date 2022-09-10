@@ -28,7 +28,7 @@ func (d DocumentRepository) Save(document domain.Document) error {
 	insert, err := d.DB.Prepare("INSERT INTO tb_document VALUES(?,?,?)")
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	insert.Exec(document.Id, document.Title, document.Body)

@@ -100,7 +100,11 @@ func writer() {
 			if err != nil {
 				log.Fatalln(err.Error())
 			}
-			memdump.Encode(w, &dump)
+
+			err = memdump.Encode(w, &dump)
+			if err != nil {
+				log.Fatalln(err.Error())
+			}
 			delete(buffer, key)
 		}
 		m.Unlock()

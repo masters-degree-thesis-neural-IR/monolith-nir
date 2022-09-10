@@ -5,15 +5,15 @@ type UnexpectedError struct {
 	Message    string
 }
 
-func ThrowUnexpectedError(message string) *error {
+func ThrowUnexpectedError(message string) error {
 
-	var err error = &UnexpectedError{
+	var err error = UnexpectedError{
 		StatusCode: 500,
 		Message:    message,
 	}
-	return &err
+	return err
 }
 
-func (e *UnexpectedError) Error() string {
+func (e UnexpectedError) Error() string {
 	return e.Message
 }

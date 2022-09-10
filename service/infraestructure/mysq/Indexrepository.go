@@ -31,7 +31,7 @@ func (i IndexRepository) FindByTerm(term string) (*domain.Index, error) {
 	result, err := i.DB.Query(query)
 
 	if err != nil {
-		return nil, *exception.ThrowUnexpectedError(err.Error())
+		return nil, exception.ThrowUnexpectedError(err.Error())
 	}
 
 	var index Index
@@ -39,7 +39,7 @@ func (i IndexRepository) FindByTerm(term string) (*domain.Index, error) {
 	for result.Next() {
 		err = result.Scan(&index.Term, &index.Documents)
 		if err != nil {
-			return nil, *exception.ThrowUnexpectedError(err.Error())
+			return nil, exception.ThrowUnexpectedError(err.Error())
 		}
 	}
 
@@ -64,7 +64,7 @@ func (i IndexRepository) Update(index domain.Index) error {
 	documents, err := json.Marshal(index.Documents)
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	update, err := i.DB.Prepare("UPDATE tb_index SET documents =? WHERE term =?")
@@ -86,7 +86,7 @@ func (i IndexRepository) Save(index domain.Index) error {
 	documents, err := json.Marshal(index.Documents)
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	//query := fmt.Sprintf("INSERT INTO tb_index VALUES('%s','%s')",
@@ -96,7 +96,7 @@ func (i IndexRepository) Save(index domain.Index) error {
 	insert, err := i.DB.Prepare("INSERT INTO tb_index VALUES(?,?)")
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	insert.Exec(index.Term, string(documents))

@@ -10,29 +10,43 @@ import (
 
 type IndexService struct {
 	Logger                    logger.Logger
-	Ch                        chan domain.NormalizedDocument
+	Ch                        chan domain.Document
 	IndexMemoryRepository     repositories.IndexMemoryRepository
 	DocumentMetricsRepository repositories.DocumentMetricsRepository
 }
 
 func NewIndexService(logger logger.Logger, documentMetricsRepository repositories.DocumentMetricsRepository, indexMemoryRepository repositories.IndexMemoryRepository) usecases.CreateIndexUc {
 
-	ch := make(chan domain.NormalizedDocument, 100)
+	ch := make(chan domain.Document, 100)
 
-	var c usecases.CreateIndexUc = IndexService{
+	i := IndexService{
 		Ch:                        ch,
 		Logger:                    logger,
 		IndexMemoryRepository:     indexMemoryRepository,
 		DocumentMetricsRepository: documentMetricsRepository,
 	}
-	go c.CreateNormalizedDocument(ch)
-	return c
+	go i.CreateNormalizedDocument(ch)
+	return i
 }
 
-func (i IndexService) CreateNormalizedDocument(ch chan domain.NormalizedDocument) {
+func (i IndexService) CreateNormalizedDocument(ch chan domain.Document) {
 
 	for document := range ch {
-		i.DocumentMetricsRepository.Save(document)
+
+		tokens := nlp.Tokenizer(document.Body, true)
+		normalizedTokens, err := nlp.RemoveStopWords(tokens, "en")
+
+		if err != nil {
+			i.Logger.Error(err.Error())
+		}
+
+		normalizedDocument := domain.NormalizedDocument{
+			Id:     document.Id,
+			Length: len(normalizedTokens),
+			Tf:     nlp.TermFrequency(normalizedTokens),
+		}
+
+		i.DocumentMetricsRepository.Save(normalizedDocument)
 	}
 
 }
@@ -47,10 +61,10 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 		return err
 	}
 
-	i.Ch <- domain.NormalizedDocument{
-		Id:     id,
-		Length: len(normalizedTokens),
-		Tf:     nlp.TermFrequency(normalizedTokens),
+	i.Ch <- domain.Document{
+		Id:    id,
+		Title: title,
+		Body:  body,
 	}
 
 	for _, term := range normalizedTokens {

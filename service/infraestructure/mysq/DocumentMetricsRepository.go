@@ -21,7 +21,7 @@ func NewDocumentMetricsRepository(db *sql.DB) repositories.DocumentMetricsReposi
 	}
 }
 
-func (d DocumentMetricsRepository) FindDocuments(documentIDs map[string]int8) ([]domain.NormalizedDocument, error) {
+func (d DocumentMetricsRepository) FindByDocumentIDs(documentIDs map[string]int8) ([]domain.NormalizedDocument, error) {
 
 	var normalizedDocuments []domain.NormalizedDocument
 
@@ -48,7 +48,7 @@ func (d DocumentMetricsRepository) FindDocuments(documentIDs map[string]int8) ([
 	result, err := d.DB.Query(query)
 
 	if err != nil {
-		return nil, *exception.ThrowUnexpectedError(err.Error())
+		return nil, exception.ThrowUnexpectedError(err.Error())
 	}
 
 	for result.Next() {
@@ -58,7 +58,7 @@ func (d DocumentMetricsRepository) FindDocuments(documentIDs map[string]int8) ([
 
 		err = result.Scan(&id, &metrics)
 		if err != nil {
-			return nil, *exception.ThrowUnexpectedError(err.Error())
+			return nil, exception.ThrowUnexpectedError(err.Error())
 		}
 
 		var normalizedDocument domain.NormalizedDocument
@@ -80,13 +80,13 @@ func (d DocumentMetricsRepository) Save(document domain.NormalizedDocument) erro
 	jsonDocument, err := json.Marshal(document)
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	insert, err := d.DB.Prepare("INSERT INTO tb_document_metrics VALUES(?,?)")
 
 	if err != nil {
-		return *exception.ThrowUnexpectedError(err.Error())
+		return exception.ThrowUnexpectedError(err.Error())
 	}
 
 	insert.Exec(document.Id, string(jsonDocument))

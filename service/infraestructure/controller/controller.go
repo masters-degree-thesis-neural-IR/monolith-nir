@@ -7,32 +7,40 @@ import (
 )
 
 type Controller struct {
+	WordEmbeddingUc usecases.WordEmbeddingUc
 	DocumentService usecases.DocumentUc
 	IndexService    usecases.CreateIndexUc
 	Search          usecases.SearchUc
 }
 
-func NewController(documentService usecases.DocumentUc, indexService usecases.CreateIndexUc, search usecases.SearchUc) Controller {
+func NewController(wordEmbeddingUc usecases.WordEmbeddingUc, documentService usecases.DocumentUc, indexService usecases.CreateIndexUc, search usecases.SearchUc) Controller {
 	return Controller{
+		WordEmbeddingUc: wordEmbeddingUc,
 		DocumentService: documentService,
 		IndexService:    indexService,
 		Search:          search,
 	}
 }
 
-func (c *Controller) SearchDocuments(query string) ([]domain.QueryResult, error) {
-	return c.Search.SearchDocument(query)
+func (c *Controller) SearchDocuments(query string) ([]domain.ScoreResult, error) {
+	//c.Search.LexicalSearchDocument(query)
+	return c.Search.SemanticSearchDocument(query)
 }
 
 func (c *Controller) CreateDocument(document dto.Document) error {
 
-	err := c.DocumentService.Create(document.Id, document.Title, document.Body)
+	//go func() {
+	//	err := c.DocumentService.Create(document.Id, document.Title, document.Body)
+	//	if err != nil {
+	//		log.Fatalln(err.Error())
+	//	}
+	//}()
 
-	if err != nil {
-		return err
-	}
+	go func() {
+		c.WordEmbeddingUc.CreateEmbedding(document.Id, document.Title, document.Body)
+	}()
 
-	err = c.IndexService.CreateIndex(document.Id, document.Title, document.Body)
+	err := c.IndexService.CreateIndex(document.Id, document.Title, document.Body)
 
 	if err != nil {
 		return err
