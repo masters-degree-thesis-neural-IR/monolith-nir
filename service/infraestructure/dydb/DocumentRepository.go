@@ -15,6 +15,11 @@ type DocumentRepository struct {
 	TableName  string
 }
 
+func (s *DocumentRepository) FindByDocumentIDs(documentIDs []string) (map[string]domain.Document, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewDocumentRepository(awsSession *session.Session, tableName string) repositories.DocumentRepository {
 	var c repositories.DocumentRepository = &DocumentRepository{
 		AwsSession: awsSession,

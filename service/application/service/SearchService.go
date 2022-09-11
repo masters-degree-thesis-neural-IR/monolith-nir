@@ -93,7 +93,7 @@ func (s Search) FindDocuments(localQuery []string) map[string]int8 {
 	return foundDocuments
 }
 
-func (s Search) LexicalSearchDocument(query string) ([]domain.ScoreResult, error) {
+func (s Search) LexicalSearch(query string) ([]domain.ScoreResult, error) {
 
 	localQuery := nlp.Tokenizer(query, true) //nlp.RemoveStopWords(nlp.Tokenizer(query, true), "en")
 	foundDocuments := s.FindDocuments(localQuery)
@@ -109,7 +109,7 @@ func (s Search) LexicalSearchDocument(query string) ([]domain.ScoreResult, error
 	return scoreResult, nil
 }
 
-func (s Search) SemanticSearchDocument(query string) ([]domain.ScoreResult, error) {
+func (s Search) SemanticSearch(query string) ([]domain.ScoreResult, error) {
 
 	localQuery := nlp.Tokenizer(query, true)
 	foundDocuments := s.FindDocuments(localQuery)
@@ -121,7 +121,6 @@ func (s Search) SemanticSearchDocument(query string) ([]domain.ScoreResult, erro
 	}
 
 	localQueryEmbedding := s.WordEmbedding.Generate(query)
-	println("Busca semantica")
 	scoreResult := nlp.SortDesc(nlp.ScoreCosineSimilarity(localQueryEmbedding, documentsEmbedding), 10)
 
 	return scoreResult, nil

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"monolith-nir/service/application/domain"
 	"monolith-nir/service/application/usecases"
 	"monolith-nir/service/infraestructure/dto"
@@ -22,19 +23,34 @@ func NewController(wordEmbeddingUc usecases.WordEmbeddingUc, documentService use
 	}
 }
 
-func (c *Controller) SearchDocuments(query string) ([]domain.ScoreResult, error) {
-	//c.Search.LexicalSearchDocument(query)
-	return c.Search.SemanticSearchDocument(query)
+func (c *Controller) SearchDocuments(query string, semanticSearch bool) ([]domain.DocumentResult, error) {
+
+	var err error
+	var scoreResult []domain.ScoreResult
+	if semanticSearch {
+		scoreResult, err = c.Search.SemanticSearch(query)
+		if err != nil {
+			return []domain.DocumentResult{}, err
+		}
+	} else {
+		scoreResult, err = c.Search.LexicalSearch(query)
+		if err != nil {
+			return []domain.DocumentResult{}, err
+		}
+	}
+
+	return c.DocumentService.LoadDocuments(scoreResult)
+
 }
 
 func (c *Controller) CreateDocument(document dto.Document) error {
 
-	//go func() {
-	//	err := c.DocumentService.Create(document.Id, document.Title, document.Body)
-	//	if err != nil {
-	//		log.Fatalln(err.Error())
-	//	}
-	//}()
+	go func() {
+		err := c.DocumentService.Create(document.Id, document.Title, document.Body)
+		if err != nil {
+			log.Print(err.Error())
+		}
+	}()
 
 	go func() {
 		c.WordEmbeddingUc.CreateEmbedding(document.Id, document.Title, document.Body)

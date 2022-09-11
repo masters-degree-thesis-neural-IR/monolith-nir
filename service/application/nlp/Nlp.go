@@ -160,7 +160,7 @@ func ScoreCosineSimilarity(query []float64, documentsEmbedding []domain.Document
 	queryResults := make([]domain.ScoreResult, len(documentsEmbedding))
 
 	for i, document := range documentsEmbedding {
-		score, _ := score.CosineSimilarity(query, document.Embedding)
+		score := score.CosineSimilarity(query, document.Embedding)
 
 		queryResults[i] = domain.ScoreResult{
 			Similarity: score,

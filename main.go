@@ -44,7 +44,6 @@ func main() {
 	fmt.Println("Success!")
 
 	logger := log.NewZapLogger()
-
 	documentEvent := sns.NewDocumentEvent(nil, "")
 	memoryRepository := memory.NewMemoryIndexRepository(logger)
 
@@ -81,38 +80,51 @@ func main() {
 
 	r.GET("/nir", func(c *gin.Context) {
 
-		start := time.Now()
 		paramPairs := c.Request.URL.Query()
-		results, err := controller.SearchDocuments(paramPairs.Get("query"))
+		var semanticSearch = false
+
+		if paramPairs.Get("semantic") == "1" {
+			semanticSearch = true
+		}
+
+		start := time.Now()
+		documentResults, err := controller.SearchDocuments(paramPairs.Get("query"), semanticSearch)
 		duration := time.Since(start)
 
 		if err != nil {
 			errorHandler(err, c)
 		}
 
-		body, err := makeBody(results, duration)
+		body, err := makeBody(documentResults, duration, semanticSearch)
 		c.JSON(http.StatusOK, body)
 	})
 	r.Run()
 }
 
-func makeBody(results []domain.ScoreResult, duration time.Duration) (dto.Result, error) {
+func makeBody(documentResults []domain.DocumentResult, duration time.Duration, semanticSearch bool) (dto.Result, error) {
 
-	total := len(results)
+	total := len(documentResults)
 
-	rst := dto.Result{
-		Total:        total,
-		Duration:     duration.String(),
-		QueryResults: make([]dto.QueryResult, total),
+	var algorithm = "BM25"
+	if semanticSearch {
+		algorithm = "Cosine Similarity"
 	}
 
-	for i, result := range results {
+	rst := dto.Result{
+		Total:          total,
+		Duration:       duration.String(),
+		Algorithm:      algorithm,
+		SemanticSearch: semanticSearch,
+		QueryResults:   make([]dto.QueryResult, total),
+	}
+
+	for i, result := range documentResults {
 		rst.QueryResults[i] = dto.QueryResult{
 			Similarity: result.Similarity,
 			Document: dto.Document{
-				Id: result.DocumentID,
-				//Title: result.Document.Title,
-				//Body:  result.Document.Body,
+				Id:    result.Document.Id,
+				Title: result.Document.Title,
+				Body:  result.Document.Body,
 			},
 		}
 	}
