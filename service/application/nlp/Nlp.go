@@ -1,6 +1,7 @@
 package nlp
 
 import (
+	"fmt"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -134,21 +135,59 @@ func TermFrequency(tokens []string) map[string]int {
 
 }
 
+func calcIdf(df map[string]int, corpusSize int) map[string]float64 {
+
+	epsilon := 0.25
+
+	idf := make(map[string]float64)
+	var negativeIdfs = make([]string, 0)
+	var idfSum float64 = 0
+
+	for term, frequency := range df {
+
+		corpusSize := float64(corpusSize)
+		freq := float64(frequency)
+		lidf := math.Log(1 + (corpusSize-freq+0.5)/freq + 0.5)
+		if math.IsInf(lidf, 1) {
+			idfSum += 0
+		} else {
+			idfSum += lidf
+		}
+		idf[term] = lidf
+		if lidf < 0 {
+			println("Tem negativo")
+			negativeIdfs = append(negativeIdfs, term)
+		}
+	}
+
+	n := len(negativeIdfs)
+	fmt.Printf("IDF sum: %v", idfSum)
+	fmt.Printf("N sum: %v", n)
+	averageIdf := idfSum / float64(n)
+	eps := (epsilon * averageIdf) * -1
+
+	fmt.Printf("Tem eps: %v", eps)
+
+	for _, term := range negativeIdfs {
+		print("Tem negativo")
+		idf[term] = eps
+	}
+
+	//fmt.Printf("%v", idf)
+
+	return idf
+
+}
+
 func CalcIdf(df map[string]int, corpusSize int) map[string]float64 {
 
 	idf := make(map[string]float64)
 
 	for term, frequency := range df {
-		//idf[term] = math.log(1 + (corpus_size - freq + 0.5) / (freq + 0.5))
-		//freq := float64(frequency) + 0.5
-		//corpusSize := float64(corpusSize)
-		//idf[term] = math.Log(1 + (corpusSize-freq)/freq)
-
-		//Novo modelo para teste
-		//idf = math.log((self.corpus_size + 1) / freq)
+		//idf[term] = math.Log(1 + (corpus_size-freq+0.5)/(freq+0.5))
 		freq := float64(frequency)
-		corpusSize := float64(corpusSize + 1)
-		idf[term] = math.Log(corpusSize / freq)
+		corpusSize := float64(corpusSize)
+		idf[term] = math.Log(1 + (corpusSize-freq+0.5)/(freq+0.5))
 	}
 
 	return idf
@@ -179,7 +218,7 @@ func ScoreBM25(query []string, invertedIndex *domain.InvertedIndex) []domain.Sco
 	var i = 0
 	for _, doc := range invertedIndex.NormalizedDocumentFound {
 
-		score := score.BM25(query, &doc, invertedIndex.Idf, invertedIndex.CorpusSize, 0.75, 1.5)
+		score := score.BM25(query, &doc, invertedIndex.Idf, invertedIndex.CorpusSize, 0.75, 1.2)
 
 		queryResults[i] = domain.ScoreResult{
 			Similarity: score,

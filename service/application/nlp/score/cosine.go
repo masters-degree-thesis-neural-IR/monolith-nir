@@ -4,7 +4,7 @@ import (
 	"math"
 )
 
-func cosineSimilarity(x, y []float64) float64 {
+func CosineSimilarity(x, y []float64) float64 {
 	var sum, s1, s2 float64
 	for i := 0; i < len(x); i++ {
 		sum += x[i] * y[i]
@@ -17,7 +17,7 @@ func cosineSimilarity(x, y []float64) float64 {
 	return sum / (math.Sqrt(s1) * math.Sqrt(s2))
 }
 
-func CosineSimilarity(a []float64, b []float64) (cosine float64) {
+func cosineSimilarity(a []float64, b []float64) float64 {
 	count := 0
 	lengthA := len(a)
 	lengthB := len(b)

@@ -34,12 +34,17 @@ func NewWordEmbeddingService(logger logger.Logger, documentEmbeddingRepository r
 func (w WordEmbeddingService) CreateDocumentEmbedding(documents chan domain.Document) {
 
 	for document := range documents {
-		embedding := w.WordEmbedding.Generate(document.Body)
+		embedding, err := w.WordEmbedding.Generate(document.Body)
+
+		if err != nil {
+			w.Logger.Error(err.Error())
+		}
+
 		documentEmbedding := domain.DocumentEmbedding{
 			Id:        document.Id,
 			Embedding: embedding,
 		}
-		err := w.DocumentEmbeddingRepository.Save(documentEmbedding)
+		err = w.DocumentEmbeddingRepository.Save(documentEmbedding)
 
 		if err != nil {
 			w.Logger.Error(err.Error())

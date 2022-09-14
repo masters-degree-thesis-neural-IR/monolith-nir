@@ -61,10 +61,11 @@ func (s Search) MakeInvertedIndex(localQuery []string, foundDocuments map[string
 	for _, term := range localQuery {
 		for _, document := range normalizedDocuments {
 			qtd := document.Tf[term]
-			//TODO: Remover a condição
-			if qtd > 0 {
-				invertedIndex.Df[term] += 1
-			}
+			invertedIndex.Df[term] += qtd
+			//if qtd > 0 {
+			//	invertedIndex.Df[term] += 1
+			//}
+
 		}
 	}
 
@@ -107,6 +108,7 @@ func (s Search) LexicalSearch(query string) ([]domain.ScoreResult, error) {
 	scoreResult := nlp.SortDesc(nlp.ScoreBM25(localQuery, &invertedIndex), 10)
 
 	return scoreResult, nil
+
 }
 
 func (s Search) SemanticSearch(query string) ([]domain.ScoreResult, error) {
@@ -117,10 +119,15 @@ func (s Search) SemanticSearch(query string) ([]domain.ScoreResult, error) {
 
 	if err != nil {
 		s.Logger.Error(err.Error())
-		return nil, exception.ThrowValidationError(err.Error())
+		return nil, err
 	}
 
-	localQueryEmbedding := s.WordEmbedding.Generate(query)
+	localQueryEmbedding, err := s.WordEmbedding.Generate(query)
+	if err != nil {
+		s.Logger.Error(err.Error())
+		return nil, err
+	}
+
 	scoreResult := nlp.SortDesc(nlp.ScoreCosineSimilarity(localQueryEmbedding, documentsEmbedding), 10)
 
 	return scoreResult, nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"monolith-nir/service/application/exception"
 	"monolith-nir/service/application/ports"
 	"net/http"
 )
@@ -21,7 +22,7 @@ type Response struct {
 	Embedding  []float64 `json:"embedding"`
 }
 
-func (w WordEmbeddingBERT) Generate(sentence string) []float64 {
+func (w WordEmbeddingBERT) Generate(sentence string) ([]float64, error) {
 
 	postBody, _ := json.Marshal(map[string]string{
 		"sentence": sentence,
@@ -34,6 +35,11 @@ func (w WordEmbeddingBERT) Generate(sentence string) []float64 {
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
+
+	if resp.StatusCode != 200 {
+		return []float64{}, exception.ThrowUnexpectedError("Not connect to embedding server")
+	}
+
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -46,5 +52,5 @@ func (w WordEmbeddingBERT) Generate(sentence string) []float64 {
 	var response Response
 	json.Unmarshal([]byte(sb), &response)
 
-	return response.Embedding
+	return response.Embedding, nil
 }

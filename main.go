@@ -93,6 +93,7 @@ func main() {
 
 		if err != nil {
 			errorHandler(err, c)
+			return
 		}
 
 		body, err := makeBody(documentResults, duration, semanticSearch)
